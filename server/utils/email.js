@@ -1,7 +1,5 @@
 const { Resend } = require('resend')
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const FROM = process.env.EMAIL_FROM || 'BGC <noreply@bombaygamingcompany.in>'
 const BRAND_PINK = '#ff1a6b'
 const BRAND_BG = '#0d0d0f'
@@ -98,6 +96,7 @@ async function sendEmail({ to, subject, html }) {
     return
   }
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({ from: FROM, to, subject, html })
     console.log('[email] Sent:', subject, '→', to)
   } catch (err) {
