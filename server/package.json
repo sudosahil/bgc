@@ -16,7 +16,8 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
-    "razorpay": "^2.9.2"
+    "razorpay": "^2.9.2",
+    "resend": "^6.9.4"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",

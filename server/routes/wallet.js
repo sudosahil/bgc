@@ -2,6 +2,7 @@ const express = require('express')
 const crypto = require('crypto')
 const { getDb, transaction, lastId } = require('../db/database')
 const authMiddleware = require('../middleware/auth')
+const email = require('../utils/email')
 
 const router = express.Router()
 router.use(authMiddleware)
@@ -72,6 +73,9 @@ router.post('/topup/verify', (req, res) => {
       .run(req.user.id, order.amount, razorpay_payment_id, razorpay_order_id)
   })
   const updated = db.prepare('SELECT wallet_balance, points FROM users WHERE id = ?').get(req.user.id)
+
+  email.walletTopUp({ user: req.user, amount: order.amount, newBalance: updated.wallet_balance }).catch(() => {})
+
   res.json({ message: `₹${order.amount} added to wallet`, wallet_balance: updated.wallet_balance })
 })
 

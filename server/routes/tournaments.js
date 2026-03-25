@@ -2,6 +2,7 @@ const express = require('express')
 const { randomUUID } = require('crypto')
 const { getDb, transaction, lastId } = require('../db/database')
 const authMiddleware = require('../middleware/auth')
+const email = require('../utils/email')
 
 const router = express.Router()
 
@@ -118,6 +119,9 @@ router.post('/:id/register', authMiddleware, (req, res) => {
   })
 
   const reg = db.prepare('SELECT * FROM tournament_registrations WHERE tournament_id = ? AND user_id = ?').get(tournament.id, req.user.id)
+
+  email.tournamentRegistered({ user: req.user, tournament, registration: reg }).catch(() => {})
+
   res.status(201).json({ registration: reg, message: 'Successfully registered!' })
 })
 
