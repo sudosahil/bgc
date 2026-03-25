@@ -11,9 +11,11 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const navLinks = [
-    { to: '/',         label: 'Home' },
-    { to: '/stations', label: 'Stations' },
-    { to: '/pricing',  label: 'Pricing' },
+    { to: '/',             label: 'Home' },
+    { to: '/stations',     label: 'Stations' },
+    { to: '/pricing',      label: 'Pricing' },
+    { to: '/discounts',    label: 'Discounts' },
+    { to: '/tournaments',  label: 'Tournaments' },
   ]
 
   const isActive = (path) => location.pathname === path

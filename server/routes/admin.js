@@ -346,6 +346,198 @@ router.delete('/discounts/:id', (req, res) => {
   res.json({ message: 'Discount deleted' })
 })
 
+// ── TOURNAMENTS ─────────────────────────────────────────────
+
+// GET /api/admin/tournaments
+router.get('/tournaments', (req, res) => {
+  const db = getDb()
+  const tournaments = db.prepare(`
+    SELECT t.*, COUNT(r.id) as registration_count, u.name as created_by_name
+    FROM tournaments t
+    LEFT JOIN tournament_registrations r ON t.id = r.tournament_id
+    LEFT JOIN users u ON t.created_by = u.id
+    GROUP BY t.id
+    ORDER BY t.created_at DESC
+  `).all()
+  res.json({ tournaments })
+})
+
+// POST /api/admin/tournaments — create
+router.post('/tournaments', (req, res) => {
+  const {
+    title, description, game_type = 'ALL', format = 'SOLO',
+    entry_fee = 0, prize_pool = '', max_participants = 32,
+    registration_start, registration_end, tournament_date,
+    status = 'draft', rules = '',
+  } = req.body
+
+  if (!title || !description || !registration_start || !registration_end || !tournament_date) {
+    return res.status(400).json({ error: 'title, description, registration_start, registration_end, tournament_date are required' })
+  }
+
+  const validGameTypes = ['ALL', 'PC', 'PS5', 'POOL']
+  const validFormats = ['SOLO', 'DUO', 'TEAM']
+  const validStatuses = ['draft', 'open', 'closed', 'ongoing', 'completed', 'cancelled']
+
+  if (!validGameTypes.includes(game_type)) return res.status(400).json({ error: 'Invalid game_type' })
+  if (!validFormats.includes(format)) return res.status(400).json({ error: 'Invalid format' })
+  if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' })
+
+  const regStart = new Date(registration_start)
+  const regEnd = new Date(registration_end)
+  const tourDate = new Date(tournament_date)
+
+  if (isNaN(regStart.getTime())) return res.status(400).json({ error: 'registration_start is invalid' })
+  if (isNaN(regEnd.getTime())) return res.status(400).json({ error: 'registration_end is invalid' })
+  if (isNaN(tourDate.getTime())) return res.status(400).json({ error: 'tournament_date is invalid' })
+  if (regStart >= regEnd) return res.status(400).json({ error: 'registration_start must be before registration_end' })
+  if (regEnd >= tourDate) return res.status(400).json({ error: 'registration_end must be before tournament_date' })
+
+  const numFee = parseFloat(entry_fee)
+  const numMax = parseInt(max_participants)
+  if (isNaN(numFee) || numFee < 0) return res.status(400).json({ error: 'entry_fee must be a non-negative number' })
+  if (isNaN(numMax) || numMax < 2) return res.status(400).json({ error: 'max_participants must be at least 2' })
+
+  const db = getDb()
+  const id = randomUUID()
+
+  db.prepare(`
+    INSERT INTO tournaments
+      (id, title, description, game_type, format, entry_fee, prize_pool, max_participants,
+       rules, registration_start, registration_end, tournament_date, status, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, title.trim(), description.trim(), game_type, format,
+    numFee, prize_pool.trim(), numMax,
+    rules ? rules.trim() : '',
+    regStart.toISOString().slice(0, 19),
+    regEnd.toISOString().slice(0, 19),
+    tourDate.toISOString().slice(0, 19),
+    status, req.user.id
+  )
+
+  const created = db.prepare('SELECT * FROM tournaments WHERE id = ?').get(id)
+  res.status(201).json({ tournament: created })
+})
+
+// PUT /api/admin/tournaments/:id — patch update
+router.put('/tournaments/:id', (req, res) => {
+  const db = getDb()
+  const tournament = db.prepare('SELECT * FROM tournaments WHERE id = ?').get(req.params.id)
+  if (!tournament) return res.status(404).json({ error: 'Tournament not found' })
+
+  const {
+    title, description, game_type, format, entry_fee, prize_pool,
+    max_participants, rules, registration_start, registration_end, tournament_date, status,
+  } = req.body
+
+  const validGameTypes = ['ALL', 'PC', 'PS5', 'POOL']
+  const validFormats = ['SOLO', 'DUO', 'TEAM']
+  const validStatuses = ['draft', 'open', 'closed', 'ongoing', 'completed', 'cancelled']
+
+  const newGameType = game_type || tournament.game_type
+  const newFormat = format || tournament.format
+  const newStatus = status || tournament.status
+
+  if (!validGameTypes.includes(newGameType)) return res.status(400).json({ error: 'Invalid game_type' })
+  if (!validFormats.includes(newFormat)) return res.status(400).json({ error: 'Invalid format' })
+  if (!validStatuses.includes(newStatus)) return res.status(400).json({ error: 'Invalid status' })
+
+  const newRegStart = registration_start ? new Date(registration_start) : new Date(tournament.registration_start)
+  const newRegEnd = registration_end ? new Date(registration_end) : new Date(tournament.registration_end)
+  const newTourDate = tournament_date ? new Date(tournament_date) : new Date(tournament.tournament_date)
+
+  if (isNaN(newRegStart.getTime()) || isNaN(newRegEnd.getTime()) || isNaN(newTourDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid date value' })
+  }
+  if (newRegStart >= newRegEnd) return res.status(400).json({ error: 'registration_start must be before registration_end' })
+  if (newRegEnd >= newTourDate) return res.status(400).json({ error: 'registration_end must be before tournament_date' })
+
+  const numFee = entry_fee !== undefined ? parseFloat(entry_fee) : tournament.entry_fee
+  const numMax = max_participants !== undefined ? parseInt(max_participants) : tournament.max_participants
+
+  db.prepare(`
+    UPDATE tournaments SET
+      title=?, description=?, game_type=?, format=?, entry_fee=?, prize_pool=?,
+      max_participants=?, rules=?, registration_start=?, registration_end=?,
+      tournament_date=?, status=?
+    WHERE id=?
+  `).run(
+    (title || tournament.title).trim(),
+    (description || tournament.description).trim(),
+    newGameType, newFormat, numFee,
+    prize_pool !== undefined ? prize_pool.trim() : tournament.prize_pool,
+    numMax,
+    rules !== undefined ? rules.trim() : tournament.rules,
+    newRegStart.toISOString().slice(0, 19),
+    newRegEnd.toISOString().slice(0, 19),
+    newTourDate.toISOString().slice(0, 19),
+    newStatus, tournament.id
+  )
+
+  res.json({ tournament: db.prepare('SELECT * FROM tournaments WHERE id = ?').get(tournament.id) })
+})
+
+// DELETE /api/admin/tournaments/:id — delete with refunds
+router.delete('/tournaments/:id', (req, res) => {
+  const db = getDb()
+  const tournament = db.prepare('SELECT * FROM tournaments WHERE id = ?').get(req.params.id)
+  if (!tournament) return res.status(404).json({ error: 'Tournament not found' })
+
+  transaction(() => {
+    // Refund paid registrations
+    const paidRegs = db.prepare(`
+      SELECT r.*, u.id as uid FROM tournament_registrations r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.tournament_id = ? AND r.payment_status = 'paid'
+    `).all(tournament.id)
+
+    for (const reg of paidRegs) {
+      db.prepare('UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?').run(tournament.entry_fee, reg.uid)
+      db.prepare(`INSERT INTO transactions (user_id, amount, type, description) VALUES (?, ?, 'refund', ?)`).run(
+        reg.uid, tournament.entry_fee, `Refund — tournament cancelled: ${tournament.title}`
+      )
+    }
+
+    db.prepare('DELETE FROM tournament_registrations WHERE tournament_id = ?').run(tournament.id)
+    db.prepare('DELETE FROM tournaments WHERE id = ?').run(tournament.id)
+  })
+
+  res.json({ message: 'Tournament deleted and entry fees refunded' })
+})
+
+// GET /api/admin/tournaments/:id/registrations
+router.get('/tournaments/:id/registrations', (req, res) => {
+  const db = getDb()
+  const tournament = db.prepare('SELECT id, title FROM tournaments WHERE id = ?').get(req.params.id)
+  if (!tournament) return res.status(404).json({ error: 'Tournament not found' })
+
+  const registrations = db.prepare(`
+    SELECT r.id, r.tournament_id, r.user_id, u.name, u.email, u.phone,
+           r.team_name, r.payment_status, r.created_at
+    FROM tournament_registrations r
+    JOIN users u ON r.user_id = u.id
+    WHERE r.tournament_id = ?
+    ORDER BY r.created_at ASC
+  `).all(req.params.id)
+
+  res.json({ tournament, registrations })
+})
+
+// PUT /api/admin/tournaments/:id/status — quick status update
+router.put('/tournaments/:id/status', (req, res) => {
+  const { status } = req.body
+  const validStatuses = ['draft', 'open', 'closed', 'ongoing', 'completed', 'cancelled']
+  if (!status || !validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'status must be one of: ' + validStatuses.join(', ') })
+  }
+  const db = getDb()
+  const tournament = db.prepare('SELECT id FROM tournaments WHERE id = ?').get(req.params.id)
+  if (!tournament) return res.status(404).json({ error: 'Tournament not found' })
+  db.prepare('UPDATE tournaments SET status = ? WHERE id = ?').run(status, tournament.id)
+  res.json({ tournament: db.prepare('SELECT * FROM tournaments WHERE id = ?').get(tournament.id) })
+})
+
 // GET /api/admin/analytics
 router.get('/analytics', (req, res) => {
   const db = getDb()

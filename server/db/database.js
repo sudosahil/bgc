@@ -149,6 +149,38 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_discount_uses_discount ON discount_uses(discount_id);
     CREATE INDEX IF NOT EXISTS idx_discount_uses_user ON discount_uses(user_id, discount_id);
+
+    CREATE TABLE IF NOT EXISTS tournaments (
+      id                  TEXT PRIMARY KEY,
+      title               TEXT NOT NULL,
+      description         TEXT NOT NULL,
+      game_type           TEXT NOT NULL DEFAULT 'ALL' CHECK(game_type IN ('ALL','PC','PS5','POOL')),
+      format              TEXT NOT NULL DEFAULT 'SOLO' CHECK(format IN ('SOLO','DUO','TEAM')),
+      entry_fee           REAL NOT NULL DEFAULT 0,
+      prize_pool          TEXT NOT NULL DEFAULT '',
+      max_participants    INTEGER NOT NULL DEFAULT 32,
+      rules               TEXT NOT NULL DEFAULT '',
+      registration_start  DATETIME NOT NULL,
+      registration_end    DATETIME NOT NULL,
+      tournament_date     DATETIME NOT NULL,
+      status              TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','open','closed','ongoing','completed','cancelled')),
+      created_by          INTEGER NOT NULL REFERENCES users(id),
+      created_at          DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS tournament_registrations (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      tournament_id   TEXT NOT NULL REFERENCES tournaments(id),
+      user_id         INTEGER NOT NULL REFERENCES users(id),
+      team_name       TEXT,
+      payment_status  TEXT NOT NULL DEFAULT 'free' CHECK(payment_status IN ('free','paid','refunded')),
+      created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(tournament_id, user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tournaments_status ON tournaments(status);
+    CREATE INDEX IF NOT EXISTS idx_tournament_regs_tournament ON tournament_registrations(tournament_id);
+    CREATE INDEX IF NOT EXISTS idx_tournament_regs_user ON tournament_registrations(user_id);
   `)
 
   // Safely add discount columns to bookings (ignore if already exist)

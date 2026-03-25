@@ -21,7 +21,8 @@ app.use('/api/stations',  require('./routes/stations'))
 app.use('/api/bookings',  require('./routes/bookings'))
 app.use('/api/wallet',    require('./routes/wallet'))
 app.use('/api/admin',     require('./routes/admin'))
-app.use('/api/discounts', require('./routes/discounts').router)
+app.use('/api/discounts',   require('./routes/discounts').router)
+app.use('/api/tournaments', require('./routes/tournaments'))
 
 // Health check
 app.get('/api/health', (req, res) => {

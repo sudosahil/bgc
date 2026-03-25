@@ -8,7 +8,10 @@ import Login      from './pages/Login'
 import Register   from './pages/Register'
 import Dashboard  from './pages/Dashboard'
 import Book       from './pages/Book'
-import NotFound   from './pages/NotFound'
+import Discounts        from './pages/Discounts'
+import Tournaments      from './pages/Tournaments'
+import TournamentDetail from './pages/TournamentDetail'
+import NotFound         from './pages/NotFound'
 
 import AdminLayout    from './pages/admin/AdminLayout'
 import AdminOverview  from './pages/admin/AdminOverview'
@@ -16,7 +19,8 @@ import AdminBookings  from './pages/admin/AdminBookings'
 import AdminWalkIns   from './pages/admin/AdminWalkIns'
 import AdminUsers     from './pages/admin/AdminUsers'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
-import AdminDiscounts from './pages/admin/AdminDiscounts'
+import AdminDiscounts   from './pages/admin/AdminDiscounts'
+import AdminTournaments from './pages/admin/AdminTournaments'
 
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute     from './components/AdminRoute'
@@ -32,6 +36,9 @@ export default function App() {
           <Route path="/login"     element={<Login />} />
           <Route path="/register"  element={<Register />} />
 
+          <Route path="/discounts"      element={<Discounts />} />
+          <Route path="/tournaments"     element={<Tournaments />} />
+          <Route path="/tournaments/:id" element={<TournamentDetail />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/book"      element={<ProtectedRoute><Book /></ProtectedRoute>} />
 
@@ -42,7 +49,8 @@ export default function App() {
             <Route path="walkins"   element={<AdminWalkIns />} />
             <Route path="users"     element={<AdminUsers />} />
             <Route path="analytics" element={<AdminAnalytics />} />
-            <Route path="discounts" element={<AdminDiscounts />} />
+            <Route path="discounts"   element={<AdminDiscounts />} />
+            <Route path="tournaments" element={<AdminTournaments />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

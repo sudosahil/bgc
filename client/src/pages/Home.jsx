@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Monitor, Gamepad2, Circle, ChevronRight, Zap, Shield, Clock, MapPin, Phone } from 'lucide-react'
+import { Monitor, Gamepad2, Circle, ChevronRight, Zap, Shield, Clock, MapPin, Phone, Trophy } from 'lucide-react'
+import dayjs from 'dayjs'
 import { HeroGeometric } from '@/components/ui/shape-landing-hero'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -401,6 +402,106 @@ function CurrentOffers() {
   )
 }
 
+/* ── Tournament Section ── */
+const GAME_TYPE_COLORS_HOME = {
+  ALL:  'bg-bgc-pink/10 text-bgc-pink',
+  PC:   'bg-blue-500/10 text-blue-400',
+  PS5:  'bg-bgc-pink/10 text-bgc-pink',
+  POOL: 'bg-purple-500/10 text-purple-400',
+}
+
+function TournamentSection() {
+  const [tournaments, setTournaments] = useState([])
+
+  useEffect(() => {
+    api.get('/tournaments').then(r => {
+      const filtered = (r.data.tournaments || []).filter(t => ['open', 'ongoing'].includes(t.status))
+      setTournaments(filtered.slice(0, 3))
+    }).catch(() => {})
+  }, [])
+
+  if (tournaments.length === 0) return null
+
+  return (
+    <div className="w-full bg-bgc-surface border-t border-bgc-border">
+      <section className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <span className="section-label">// TOURNAMENTS</span>
+            <h2 className="section-title flex items-center gap-3">
+              <Trophy size={32} className="text-bgc-pink" />
+              Compete &amp; Win
+            </h2>
+            <p className="text-bgc-muted mt-2 text-sm max-w-md" style={{ fontFamily: 'Inter, sans-serif' }}>
+              Join official BGC tournaments. Register your spot, compete, and claim the prize.
+            </p>
+          </div>
+          <Link to="/tournaments" className="text-bgc-pink text-sm font-medium hover:underline shrink-0"
+            style={{ fontFamily: 'Inter, sans-serif' }}>
+            See All Tournaments →
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {tournaments.map(t => {
+            const spotsLeft = t.max_participants - (t.registration_count || 0)
+            const isFull = spotsLeft <= 0
+            return (
+              <div key={t.id}
+                className="bg-bgc-elevated border border-bgc-border rounded-xl overflow-hidden hover:border-bgc-pink/30 transition-all"
+                style={{ borderTop: '2px solid #ff1a6b' }}>
+                <div className="p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${GAME_TYPE_COLORS_HOME[t.game_type] || ''}`}
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                      {t.game_type}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-bgc-surface text-bgc-muted border border-bgc-border"
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                      {t.format}
+                    </span>
+                  </div>
+                  <h3 className="font-heading text-lg text-bgc-text mb-1 leading-tight">{t.title}</h3>
+                  {t.prize_pool && (
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Trophy size={11} className="text-bgc-pink" />
+                      <span className="text-bgc-pink text-xs font-semibold" style={{ fontFamily: 'Inter, sans-serif' }}>{t.prize_pool}</span>
+                    </div>
+                  )}
+                  <div className="space-y-1 mb-3">
+                    <p className="text-bgc-muted text-xs" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      {dayjs(t.tournament_date).format('D MMM YYYY, h:mm A')}
+                    </p>
+                    <p className={`text-xs font-semibold ${isFull ? 'text-bgc-error' : 'text-bgc-muted'}`} style={{ fontFamily: 'Inter, sans-serif' }}>
+                      {isFull ? 'FULL' : `${spotsLeft} spots left`}
+                      {!isFull && <span className="font-normal ml-1 text-bgc-muted">/ {t.max_participants}</span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-bold ${t.entry_fee > 0 ? 'text-bgc-pink' : 'text-bgc-success'}`}
+                      style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                      {t.entry_fee > 0 ? `₹${t.entry_fee} ENTRY` : 'FREE ENTRY'}
+                    </span>
+                    <Link to={`/tournaments/${t.id}`}
+                      className="text-bgc-pink text-xs font-medium hover:underline flex items-center gap-1"
+                      style={{ fontFamily: 'Inter, sans-serif' }}>
+                      View &amp; Register <ChevronRight size={12} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="mt-6 text-center">
+          <Link to="/tournaments" className="btn-outline text-sm inline-flex items-center gap-2">
+            See All Tournaments <ChevronRight size={14} />
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 /* ══════════════════════════════ */
 export default function Home() {
   const [activeTab, setActiveTab] = useState('pc')
@@ -701,6 +802,8 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      <TournamentSection />
 
       <CurrentOffers />
 

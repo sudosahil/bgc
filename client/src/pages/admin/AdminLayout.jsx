@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, CalendarDays, UserPlus, Users, BarChart2, Tag, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, UserPlus, Users, BarChart2, Tag, Trophy, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 
@@ -9,7 +9,8 @@ const navItems = [
   { to: '/admin/walkins',    icon: UserPlus,        label: 'Walk-ins' },
   { to: '/admin/users',      icon: Users,           label: 'Users' },
   { to: '/admin/analytics',  icon: BarChart2,       label: 'Analytics' },
-  { to: '/admin/discounts',  icon: Tag,             label: 'Discounts' },
+  { to: '/admin/discounts',    icon: Tag,             label: 'Discounts' },
+  { to: '/admin/tournaments',  icon: Trophy,          label: 'Tournaments' },
 ]
 
 export default function AdminLayout() {
