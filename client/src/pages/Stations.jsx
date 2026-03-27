@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Monitor, Gamepad2, Circle } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import AvailabilityBoard from '../components/AvailabilityBoard'
 import { Link } from 'react-router-dom'
 import api from '../api/axios'
 
@@ -64,6 +65,10 @@ export default function Stations() {
             </p>
           </div>
         </div>
+
+        <AvailabilityBoard />
+
+        <div className="border-t border-bgc-border" />
 
         <div className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
 

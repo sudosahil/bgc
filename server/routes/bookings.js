@@ -3,6 +3,7 @@ const { getDb, transaction, lastId } = require('../db/database')
 const authMiddleware = require('../middleware/auth')
 const { validateDiscount } = require('./discounts')
 const email = require('../utils/email')
+const { syncStationStatuses } = require('../jobs/bookingCron')
 
 const router = express.Router()
 router.use(authMiddleware)
@@ -103,6 +104,7 @@ router.post('/', (req, res) => {
   `).get(bookingId)
 
   email.bookingConfirmed({ user: req.user, booking }).catch(() => {})
+  try { syncStationStatuses() } catch (_) {}
 
   res.status(201).json({ booking })
 })
@@ -181,6 +183,7 @@ router.delete('/:id', (req, res) => {
   })
 
   email.bookingCancelled({ user: req.user, booking }).catch(() => {})
+  try { syncStationStatuses() } catch (_) {}
 
   res.json({ message: 'Booking cancelled. Deposit refunded to wallet.' })
 })

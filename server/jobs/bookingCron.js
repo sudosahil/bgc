@@ -60,16 +60,50 @@ function runAutoCancel() {
   }
 }
 
+function syncStationStatuses() {
+  const db = getDb()
+  const now = new Date().toISOString().slice(0, 19)
+  const soon = new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 19)
+
+  // Stations with an active session right now → OCCUPIED
+  const occupiedIds = db.prepare(`
+    SELECT DISTINCT station_id FROM bookings
+    WHERE status IN ('confirmed','pending_final','pending_cash')
+    AND start_time <= ? AND end_time > ?
+  `).all(now, now).map(r => r.station_id)
+
+  // Stations with a booking starting within 30 min (not already occupied) → RESERVED
+  const reservedIds = db.prepare(`
+    SELECT DISTINCT station_id FROM bookings
+    WHERE status IN ('confirmed','pending_cash')
+    AND start_time > ? AND start_time <= ?
+  `).all(now, soon).map(r => r.station_id).filter(id => !occupiedIds.includes(id))
+
+  const busyIds = [...occupiedIds, ...reservedIds]
+
+  if (occupiedIds.length) {
+    db.prepare(`UPDATE stations SET status='OCCUPIED' WHERE id IN (${occupiedIds.map(() => '?').join(',')}) AND status != 'MAINTENANCE'`).run(...occupiedIds)
+  }
+  if (reservedIds.length) {
+    db.prepare(`UPDATE stations SET status='RESERVED' WHERE id IN (${reservedIds.map(() => '?').join(',')}) AND status != 'MAINTENANCE'`).run(...reservedIds)
+  }
+  if (busyIds.length) {
+    db.prepare(`UPDATE stations SET status='AVAILABLE' WHERE id NOT IN (${busyIds.map(() => '?').join(',')}) AND status != 'MAINTENANCE'`).run(...busyIds)
+  } else {
+    db.prepare(`UPDATE stations SET status='AVAILABLE' WHERE status != 'MAINTENANCE'`).run()
+  }
+}
+
 function startCron() {
-  // Run every 5 minutes
   cron.schedule('*/5 * * * *', () => {
     try {
       runAutoCancel()
+      syncStationStatuses()
     } catch (err) {
       console.error('[Cron] Error:', err.message)
     }
   })
-  console.log('[Cron] Booking auto-cancel job started (every 5 minutes)')
+  console.log('[Cron] Booking auto-cancel + station sync started (every 5 minutes)')
 }
 
-module.exports = { startCron, runAutoCancel }
+module.exports = { startCron, runAutoCancel, syncStationStatuses }

@@ -187,6 +187,14 @@ function initSchema() {
   ;['discount_id TEXT', 'discount_amount REAL DEFAULT 0', 'discount_code TEXT'].forEach(col => {
     try { db.exec(`ALTER TABLE bookings ADD COLUMN ${col}`) } catch (_) {}
   })
+
+  // Add station status column (ignore if already exists)
+  try {
+    db.exec(`ALTER TABLE stations ADD COLUMN status TEXT NOT NULL DEFAULT 'AVAILABLE' CHECK(status IN ('AVAILABLE','OCCUPIED','RESERVED','MAINTENANCE'))`)
+  } catch (_) {}
+  try {
+    db.exec(`ALTER TABLE stations ADD COLUMN specs TEXT`)
+  } catch (_) {}
 }
 
 function seedData() {

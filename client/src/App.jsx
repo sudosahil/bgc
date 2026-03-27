@@ -21,6 +21,7 @@ import AdminUsers     from './pages/admin/AdminUsers'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
 import AdminDiscounts   from './pages/admin/AdminDiscounts'
 import AdminTournaments from './pages/admin/AdminTournaments'
+import AdminStations    from './pages/admin/AdminStations'
 
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute     from './components/AdminRoute'
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="discounts"   element={<AdminDiscounts />} />
             <Route path="tournaments" element={<AdminTournaments />} />
+            <Route path="stations"   element={<AdminStations />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
