@@ -36,6 +36,41 @@ router.get('/', (req, res) => {
   res.json({ stations, summary, updatedAt: new Date().toISOString() })
 })
 
+// GET /api/stations/slot?date=&start_time=&duration= — all stations with availability for a slot
+router.get('/slot', (req, res) => {
+  const { date, start_time, duration } = req.query
+  if (!date || !start_time || !duration) {
+    return res.status(400).json({ error: 'date, start_time, duration are required' })
+  }
+  const dur = parseFloat(duration)
+  if (isNaN(dur) || dur < 1 || dur > 8) return res.status(400).json({ error: 'Duration must be 1–8 hours' })
+
+  const startISO = `${date}T${start_time}:00`
+  const startDate = new Date(startISO)
+  if (isNaN(startDate.getTime())) return res.status(400).json({ error: 'Invalid date or time' })
+  const endISO = new Date(startDate.getTime() + dur * 3600 * 1000).toISOString().slice(0, 19)
+
+  const db = getDb()
+  const bookedIds = new Set(
+    db.prepare(`SELECT DISTINCT station_id FROM bookings
+      WHERE status IN ('confirmed','pending_final','pending_cash')
+      AND NOT (end_time <= ? OR start_time >= ?)`).all(startISO, endISO).map(r => r.station_id)
+  )
+  const walkinIds = new Set(
+    db.prepare(`SELECT DISTINCT station_id FROM walkins
+      WHERE NOT (datetime(start_time,'+'||CAST(duration_hours AS TEXT)||' hours') <= ? OR start_time >= ?)`
+    ).all(startISO, endISO).map(r => r.station_id)
+  )
+
+  const stations = db.prepare('SELECT * FROM stations WHERE is_active = 1 ORDER BY type, name').all()
+  const result = stations.map(s => ({
+    ...s,
+    available: !bookedIds.has(s.id) && !walkinIds.has(s.id),
+  }))
+
+  res.json({ stations: result, slot: { startTime: startISO, endTime: endISO, duration: dur } })
+})
+
 // GET /api/stations/availability
 router.get('/availability', (req, res) => {
   const { type, date, start_time, duration } = req.query

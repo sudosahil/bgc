@@ -109,6 +109,124 @@ router.post('/', (req, res) => {
   res.status(201).json({ booking })
 })
 
+// POST /api/bookings/multi — book multiple stations in one transaction
+router.post('/multi', (req, res) => {
+  const { station_ids, start_time, duration_hours, payment_method = 'wallet', discount_code } = req.body
+  if (!station_ids || !Array.isArray(station_ids) || station_ids.length === 0) {
+    return res.status(400).json({ error: 'station_ids array is required' })
+  }
+  if (station_ids.length > 10) return res.status(400).json({ error: 'Max 10 stations per booking' })
+  if (!start_time || !duration_hours) return res.status(400).json({ error: 'start_time and duration_hours are required' })
+
+  const dur = parseFloat(duration_hours)
+  if (isNaN(dur) || dur < 1 || dur > 8) return res.status(400).json({ error: 'Duration must be 1–8 hours' })
+
+  const timeStr = start_time.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(start_time) ? start_time : start_time + 'Z'
+  const startDate = new Date(timeStr)
+  if (isNaN(startDate.getTime()) || startDate <= new Date()) {
+    return res.status(400).json({ error: 'start_time must be a valid future datetime' })
+  }
+  const endDate = new Date(startDate.getTime() + dur * 3600 * 1000)
+  const startISO = startDate.toISOString().slice(0, 19)
+  const endISO = endDate.toISOString().slice(0, 19)
+
+  const db = getDb()
+
+  // Validate all stations exist and are active
+  const stations = station_ids.map(id => {
+    const s = db.prepare('SELECT * FROM stations WHERE id = ? AND is_active = 1').get(id)
+    if (!s) throw Object.assign(new Error(`Station ${id} not found`), { status: 404 })
+    return s
+  })
+
+  // Check conflicts for each station
+  for (const s of stations) {
+    const conflict = db.prepare(`SELECT id FROM bookings
+      WHERE station_id = ? AND status IN ('confirmed','pending_final','pending_cash')
+      AND NOT (end_time <= ? OR start_time >= ?)`).get(s.id, startISO, endISO)
+    if (conflict) return res.status(409).json({ error: `${s.name} is already booked for this time slot` })
+
+    const wConflict = db.prepare(`SELECT id FROM walkins WHERE station_id = ?
+      AND NOT (datetime(start_time,'+'||CAST(duration_hours AS TEXT)||' hours') <= ? OR start_time >= ?)`
+    ).get(s.id, startISO, endISO)
+    if (wConflict) return res.status(409).json({ error: `${s.name} is occupied (walk-in) during this time` })
+  }
+
+  // Calculate totals
+  const subtotal = stations.reduce((sum, s) => sum + s.hourly_rate * dur, 0)
+
+  // Validate discount (only ALL-type discounts apply to mixed bookings)
+  let discountData = null
+  if (discount_code) {
+    const result = validateDiscount(discount_code, 'all', subtotal, req.user.id, db)
+    if (result.error) return res.status(422).json({ error: result.error, errorCode: result.errorCode })
+    discountData = result
+  }
+
+  const discountAmount = discountData ? discountData.discountAmount : 0
+  const total = subtotal - discountAmount
+  const deposit = Math.ceil(total * 0.5)
+  const finalAmt = total - deposit
+
+  if (payment_method === 'wallet') {
+    const currentUser = db.prepare('SELECT wallet_balance FROM users WHERE id = ?').get(req.user.id)
+    if (currentUser.wallet_balance < deposit) {
+      return res.status(402).json({ error: `Insufficient wallet balance. Need ₹${deposit}, have ₹${currentUser.wallet_balance}` })
+    }
+  }
+
+  // Per-station amounts (split evenly)
+  const perStationTotal = parseFloat((total / stations.length).toFixed(2))
+  const perStationDeposit = Math.ceil(perStationTotal * 0.5)
+  const perStationFinal = perStationTotal - perStationDeposit
+
+  const bookingIds = transaction(() => {
+    const ids = []
+    for (const s of stations) {
+      const result = db.prepare(`INSERT INTO bookings
+        (user_id, station_id, start_time, end_time, duration_hours,
+         total_amount, deposit_amount, final_amount, payment_method, status, notes,
+         deposit_paid, final_paid, discount_id, discount_amount, discount_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        req.user.id, s.id, startISO, endISO, dur,
+        perStationTotal, perStationDeposit, perStationFinal,
+        payment_method,
+        payment_method === 'wallet' ? 'confirmed' : 'pending_cash',
+        null,
+        payment_method === 'wallet' ? 1 : 0, 0,
+        discountData ? discountData.discount.id : null,
+        discountAmount / stations.length,
+        discountData ? discountData.discount.code : null
+      )
+      ids.push(Number(result.lastInsertRowid))
+    }
+
+    if (payment_method === 'wallet') {
+      db.prepare('UPDATE users SET wallet_balance = wallet_balance - ?, points = points + ? WHERE id = ?')
+        .run(deposit, Math.floor(deposit), req.user.id)
+      db.prepare(`INSERT INTO transactions (user_id, amount, type, description) VALUES (?, ?, 'deposit', ?)`)
+        .run(req.user.id, deposit, `Deposit for ${stations.length} station(s) on ${startISO.slice(0, 10)}`)
+    }
+
+    if (discountData) {
+      db.prepare('INSERT INTO discount_uses (discount_id, user_id, booking_id) VALUES (?, ?, ?)').run(discountData.discount.id, req.user.id, ids[0])
+      db.prepare('UPDATE discounts SET uses_so_far = uses_so_far + 1 WHERE id = ?').run(discountData.discount.id)
+    }
+
+    return ids
+  })
+
+  const bookings = bookingIds.map(id =>
+    db.prepare(`SELECT b.*, s.name as station_name, s.type as station_type, s.hourly_rate
+      FROM bookings b JOIN stations s ON b.station_id = s.id WHERE b.id = ?`).get(id)
+  )
+
+  try { syncStationStatuses() } catch (_) {}
+
+  res.status(201).json({ bookings, summary: { total, deposit, finalAmt, station_count: stations.length } })
+})
+
 // GET /api/bookings/my
 router.get('/my', (req, res) => {
   const db = getDb()
