@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X, LayoutDashboard, Shield, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -9,6 +9,12 @@ export default function Navbar() {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
 
   const navLinks = [
     { to: '/',             label: 'Home' },
@@ -112,7 +118,11 @@ export default function Navbar() {
           </div>
 
           {/* Mobile menu button */}
-          <button className="md:hidden p-2 text-bgc-muted" onClick={() => setMobileOpen(v => !v)}>
+          <button
+            className="md:hidden flex items-center justify-center text-bgc-muted"
+            style={{ minWidth: 44, minHeight: 44 }}
+            onClick={() => setMobileOpen(v => !v)}
+          >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
@@ -123,9 +133,10 @@ export default function Navbar() {
         <div className="md:hidden bg-bgc-surface border-t border-bgc-border px-4 py-4 space-y-1 animate-slide-up">
           {navLinks.map(l => (
             <Link key={l.to} to={l.to} onClick={() => setMobileOpen(false)}
-              className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center px-4 rounded-lg text-sm font-medium transition-colors ${
                 isActive(l.to) ? 'text-bgc-pink bg-bgc-pink/10' : 'text-bgc-muted hover:text-bgc-text hover:bg-bgc-elevated'
-              }`}>
+              }`}
+              style={{ minHeight: 48 }}>
               {l.label}
             </Link>
           ))}

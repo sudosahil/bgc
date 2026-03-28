@@ -40,8 +40,9 @@ function SummaryPill({ label, free, total }) {
       background: '#1a1025',
       border: `1px solid ${color}33`,
       borderRadius: 12,
-      padding: '14px 24px',
-      minWidth: 140,
+      padding: '14px 20px',
+      minWidth: 120,
+      flex: '1 0 auto',
       textAlign: 'center',
     }}>
       <div style={{
@@ -170,8 +171,8 @@ export default function AvailabilityBoard() {
   }
 
   return (
-    <section style={{ padding: '72px 0', background: 'transparent' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px' }}>
+    <section className="py-10 lg:py-[72px]" style={{ background: 'transparent' }}>
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10">
 
         {/* Header */}
         <div style={{ marginBottom: 36 }}>

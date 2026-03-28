@@ -160,9 +160,9 @@ export default function Dashboard() {
       <div className="flex-1 pt-20 pb-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           {/* Header */}
-          <div className="py-6 flex items-center justify-between">
+          <div className="py-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="font-heading text-3xl font-bold text-bgc-text">Hey, {user?.name?.split(' ')[0]}!</h1>
+              <h1 className="font-heading text-2xl sm:text-3xl font-bold text-bgc-text">Hey, {user?.name?.split(' ')[0]}!</h1>
               <p className="text-bgc-muted text-sm mt-1">Manage your bookings and wallet</p>
             </div>
             <Link to="/book" className="btn-primary flex items-center gap-2 text-sm">
@@ -196,10 +196,10 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             {/* Wallet card */}
             <div className="md:col-span-2 card neon-border">
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
                   <p className="text-bgc-muted text-xs uppercase tracking-wider mb-1">BGC Wallet</p>
-                  <p className="font-heading text-4xl font-bold text-bgc-text">₹{wallet.wallet_balance?.toFixed(2)}</p>
+                  <p className="font-heading text-3xl sm:text-4xl font-bold text-bgc-text">₹{wallet.wallet_balance?.toFixed(2)}</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setTopupModal(true)}

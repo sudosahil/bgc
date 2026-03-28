@@ -56,8 +56,8 @@ export default function Pricing() {
       <div className="pt-16">
 
         {/* Header */}
-        <div className="bg-bgc-surface border-b border-bgc-border py-14">
-          <div className="max-w-[1200px] mx-auto px-10 text-center w-full">
+        <div className="bg-bgc-surface border-b border-bgc-border py-10 lg:py-14">
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 text-center w-full">
             <span className="section-label" style={{ textAlign: 'center', display: 'block' }}>// TRANSPARENT PRICING</span>
             <h1 className="section-title mb-3">Simple, Pay-as-You-Play</h1>
             <p className="text-bgc-muted max-w-xl mx-auto text-sm">
@@ -67,7 +67,7 @@ export default function Pricing() {
         </div>
 
         {/* Pricing cards */}
-        <div className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-10 lg:py-[72px] w-full">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-14 items-start">
             {plans.map(plan => {
               const Icon = plan.icon
@@ -75,10 +75,9 @@ export default function Pricing() {
                 <div key={plan.type}
                   className={`relative bg-bgc-surface border ${plan.borderClass} rounded-xl flex flex-col p-7 ${
                     plan.featured
-                      ? 'ring-1 ring-bgc-pink/30 shadow-pink-sm pricing-featured'
+                      ? 'ring-1 ring-bgc-pink/30 shadow-pink-sm pricing-featured featured-raised'
                       : ''
-                  }`}
-                  style={plan.featured ? { transform: 'translateY(-12px)' } : undefined}>
+                  }`}>
                   {plan.featured && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 badge-pink px-4 py-1 flex items-center gap-1.5">
                       <Star size={10} fill="currentColor" />

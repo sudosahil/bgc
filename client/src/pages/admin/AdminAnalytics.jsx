@@ -36,9 +36,9 @@ export default function AdminAnalytics() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-heading text-2xl font-bold text-bgc-text">Analytics</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {[['7', '7 Days'], ['30', '30 Days'], ['90', '90 Days']].map(([v, l]) => (
             <button key={v} onClick={() => setPeriod(v)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${

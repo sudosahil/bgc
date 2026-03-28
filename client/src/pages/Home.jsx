@@ -382,18 +382,19 @@ function CurrentOffers() {
   if (discounts.length === 0) return null
 
   return (
-    <div style={{ padding: '48px 0 0' }}>
-      <div style={{ padding: '0 80px 20px' }}>
+    <div className="pt-12">
+      <div className="px-4 sm:px-6 lg:px-20 pb-5">
         <span className="section-label">// CURRENT OFFERS</span>
       </div>
-      <div style={{
-        display: 'flex',
-        gap: 16,
-        overflowX: 'auto',
-        padding: '0 80px 48px',
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#3a1030 #110b18',
-      }}>
+      <div
+        className="offers-scroll px-4 sm:px-6 lg:px-20 pb-12"
+        style={{
+          display: 'flex',
+          gap: 16,
+          overflowX: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#3a1030 #110b18',
+        }}>
         {discounts.map(d => (
           <OfferCard key={d.id} discount={d} />
         ))}
@@ -424,8 +425,8 @@ function TournamentSection() {
 
   return (
     <div className="w-full bg-bgc-surface border-t border-bgc-border">
-      <section className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
-        <div className="flex items-end justify-between mb-8">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-10 lg:py-[72px] w-full">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
           <div>
             <span className="section-label">// TOURNAMENTS</span>
             <h2 className="section-title flex items-center gap-3">
@@ -436,7 +437,7 @@ function TournamentSection() {
               Join official BGC tournaments. Register your spot, compete, and claim the prize.
             </p>
           </div>
-          <Link to="/tournaments" className="text-bgc-pink text-sm font-medium hover:underline shrink-0"
+          <Link to="/tournaments" className="text-bgc-pink text-sm font-medium hover:underline sm:shrink-0"
             style={{ fontFamily: 'Inter, sans-serif' }}>
             See All Tournaments →
           </Link>
@@ -548,11 +549,11 @@ export default function Home() {
       />
 
       {/* ── Ticker bar ── */}
-      <div className="w-full overflow-hidden" style={{ height: 40, background: '#ff1a6b' }}>
+      <div className="w-full overflow-hidden" style={{ height: 36, background: '#ff1a6b' }}>
         <div className="ticker-track h-full flex items-center">
           {[0, 1].map(i => (
             <span key={i} className="whitespace-nowrap px-4"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, color: '#0a060d', letterSpacing: '0.06em' }}>
+              style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(13px, 2vw, 16px)', color: '#0a060d', letterSpacing: '0.06em' }}>
               {TICKER_TEXT}
             </span>
           ))}
@@ -561,7 +562,7 @@ export default function Home() {
 
       {/* ── What We Offer strip ── */}
       <div>
-        <div style={{ padding: '32px 80px 0' }}>
+        <div className="px-4 sm:px-6 lg:px-20 pt-8">
           <span className="section-label">// WHAT WE OFFER</span>
         </div>
         <div className="offer-strip">
@@ -612,7 +613,7 @@ export default function Home() {
       </div>
 
       {/* ── Stations Preview ── */}
-      <section className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-10 lg:py-[72px] w-full">
         <div className="mb-8">
           <span className="section-label">// 01 OUR SETUPS</span>
           <h2 className="section-title">Three Ways to Play</h2>
@@ -661,7 +662,7 @@ export default function Home() {
 
       {/* ── How It Works ── */}
       <div className="w-full bg-bgc-surface border-y border-bgc-border">
-        <section className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
+        <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-10 lg:py-[72px] w-full">
           <div className="mb-8">
             <span className="section-label">// 02 PROCESS</span>
             <h2 className="section-title">How It Works</h2>
@@ -684,7 +685,7 @@ export default function Home() {
       </div>
 
       {/* ── Wallet & Points ── */}
-      <section className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-10 lg:py-[72px] w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div>
             <span className="section-label">// 03 REWARDS</span>
@@ -760,7 +761,7 @@ export default function Home() {
 
       {/* ── Location ── */}
       <div className="w-full bg-bgc-surface border-t border-bgc-border">
-        <section className="max-w-[1200px] mx-auto px-10 py-[72px] w-full">
+        <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-10 lg:py-[72px] w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div>
               <span className="section-label">// 04 FIND US</span>

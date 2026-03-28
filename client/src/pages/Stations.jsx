@@ -40,6 +40,10 @@ function SeatTile({ station, selected, onToggle, hasSlot }) {
           textAlign: 'center',
           cursor: 'default',
           opacity: 0.7,
+          minHeight: 52,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, color: cfg.accent, lineHeight: 1.2 }}>
@@ -71,6 +75,7 @@ function SeatTile({ station, selected, onToggle, hasSlot }) {
         textAlign: 'center',
         transition: 'all 0.12s',
         position: 'relative',
+        minHeight: 52,
       }}
     >
       {selected && (
@@ -408,8 +413,8 @@ export default function Stations() {
       <div style={{ paddingTop: 64, flex: 1 }}>
 
         {/* Header */}
-        <div style={{ background: '#12091c', borderBottom: '1px solid #2d1f3d', padding: '40px 0' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ background: '#12091c', borderBottom: '1px solid #2d1f3d', padding: '32px 0' }}>
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
             <p style={{ fontSize: 11, fontWeight: 700, color: '#6b5c8a', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>// BOOK A SESSION</p>
             <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,44px)', color: '#e0d0f0', letterSpacing: '0.03em', marginBottom: 6 }}>
               Pick Your Station
@@ -420,10 +425,10 @@ export default function Stations() {
           </div>
         </div>
 
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px', display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-8 flex flex-col lg:flex-row gap-7 items-start">
 
           {/* ── Left: Slot picker + Seat Map ── */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex-1 min-w-0 w-full">
 
             {/* Slot Picker */}
             <div style={{ background: '#12091c', border: '1px solid #2d1f3d', borderRadius: 14, padding: 20, marginBottom: 24 }}>
@@ -442,8 +447,8 @@ export default function Stations() {
                   onChange={e => { setDate(e.target.value); setHour(null); setSlotStations(null) }}
                   style={{
                     padding: '9px 12px', borderRadius: 8, background: '#0f0a18',
-                    border: '1px solid #2d1f3d', color: '#e0d0f0', fontSize: 13, outline: 'none',
-                    colorScheme: 'dark',
+                    border: '1px solid #2d1f3d', color: '#e0d0f0', fontSize: 16, outline: 'none',
+                    colorScheme: 'dark', width: '100%', maxWidth: 220,
                   }}
                 />
               </div>
@@ -592,8 +597,8 @@ export default function Stations() {
           </div>
 
           {/* ── Right: Checkout ── */}
-          <div style={{ width: 300, flexShrink: 0 }}>
-            <div style={{ position: 'sticky', top: 80 }}>
+          <div className="w-full lg:w-[300px] lg:flex-shrink-0">
+            <div className="lg:sticky lg:top-20">
               <div style={{ background: '#12091c', border: '1px solid #2d1f3d', borderRadius: 14, padding: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid #2d1f3d' }}>
                   <ShoppingCart size={16} color="#ff6eb4" />

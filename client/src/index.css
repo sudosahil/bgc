@@ -6,11 +6,14 @@
   html {
     font-family: 'Inter', sans-serif;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
   body {
     background-color: #0a060d;
     color: #f0e8f0;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    max-width: 100%;
     /* Circuit-board grid — gives dark bg density */
     background-image:
       linear-gradient(rgba(196,0,106,0.055) 1px, transparent 1px),
@@ -34,15 +37,18 @@
     @apply bg-gradient-pink text-white font-semibold px-6 py-2.5 rounded-lg
            transition-all duration-200 hover:opacity-90 hover:shadow-pink-sm hover:scale-[1.02]
            active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 44px;
   }
   .btn-outline {
     @apply border border-bgc-pink text-bgc-pink font-semibold px-6 py-2.5 rounded-lg
            transition-all duration-200 hover:bg-bgc-pink hover:text-white
            active:scale-95 disabled:opacity-50;
+    min-height: 44px;
   }
   .btn-ghost {
     @apply text-bgc-muted font-medium px-4 py-2 rounded-lg
            transition-colors duration-200 hover:text-bgc-text hover:bg-bgc-elevated;
+    min-height: 44px;
   }
   .card {
     @apply bg-bgc-surface border border-bgc-border rounded-xl p-6 shadow-card;
@@ -55,6 +61,7 @@
            text-bgc-text placeholder-bgc-muted text-sm
            focus:outline-none focus:border-bgc-pink focus:ring-1 focus:ring-bgc-pink/30
            transition-colors duration-200;
+    min-height: 48px;
   }
   .label {
     @apply block text-sm font-medium text-bgc-muted mb-1.5;
@@ -217,6 +224,7 @@
 .station-tab {
   flex: 1;
   padding: 12px 0;
+  min-height: 44px;
   text-align: center;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 13px;
@@ -393,6 +401,11 @@
   .hero-left { align-items: center; }
   .hero-left p { text-align: center; max-width: 100%; }
 }
+@media (max-width: 639px) {
+  .hero-grid {
+    padding: 88px 16px 48px;
+  }
+}
 
 /* ── What We Offer strip ── */
 .offer-strip {
@@ -457,5 +470,100 @@
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Featured pricing card — responsive elevation ── */
+.featured-raised {
+  transform: translateY(-12px);
+}
+@media (max-width: 639px) {
+  .featured-raised {
+    transform: none;
+  }
+}
+
+/* ── Touch & tap target improvements ── */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  user-select: none;
+}
+
+/* ── Mobile-specific overrides (< 640px) ── */
+@media (max-width: 639px) {
+  /* Prevent iOS auto-zoom on input focus */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Disable grid background pattern for performance */
+  body {
+    background-image: none;
+  }
+
+  /* Disable heavy text glows on mobile */
+  .glow-brand, .glow-text {
+    text-shadow: none;
+    color: #ff1a6b;
+  }
+
+  /* Replace neon border glow with simpler border */
+  .border-glow {
+    box-shadow: none;
+    border-color: rgba(255, 26, 107, 0.4);
+  }
+
+  /* Simplify neon border on mobile */
+  .neon-border {
+    box-shadow: none;
+    border-color: rgba(196, 0, 106, 0.3);
+  }
+
+  /* Social proof bar: wrap items, reduce padding */
+  .social-proof-bar {
+    padding: 20px 16px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .social-divider {
+    display: none;
+  }
+
+  /* Hero scroll hint: hide on mobile (absolute positioned) */
+  .scroll-hint {
+    display: none;
+  }
+
+  /* Offer block: reduce padding on mobile */
+  .offer-block {
+    padding: 24px 16px;
+  }
+
+  /* Ensure touch targets for seats */
+  .station-tab {
+    min-height: 44px;
+  }
+}
+
+/* ── Smooth iOS horizontal scroll on discount cards ── */
+.offers-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Prefers-reduced-motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Tablet (640–1023px) offer strip ── */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .offer-block {
+    padding: 32px 20px;
+  }
 }
 
