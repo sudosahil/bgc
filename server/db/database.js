@@ -195,6 +195,32 @@ function initSchema() {
   try {
     db.exec(`ALTER TABLE stations ADD COLUMN specs TEXT`)
   } catch (_) {}
+
+  // Activity log table
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS activity_log (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER,
+      user_name  TEXT NOT NULL DEFAULT 'Guest',
+      role       TEXT NOT NULL DEFAULT 'user',
+      action     TEXT NOT NULL,
+      details    TEXT NOT NULL DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`)
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(created_at DESC)`)
+  } catch (_) {}
+
+  // Add discount + razorpay columns to bookings (ignore if already exists)
+  const bookingMigrations = [
+    `ALTER TABLE bookings ADD COLUMN discount_id TEXT`,
+    `ALTER TABLE bookings ADD COLUMN discount_amount REAL DEFAULT 0`,
+    `ALTER TABLE bookings ADD COLUMN discount_code TEXT`,
+    `ALTER TABLE bookings ADD COLUMN razorpay_payment_id TEXT`,
+    `ALTER TABLE bookings ADD COLUMN razorpay_order_id TEXT`,
+  ]
+  for (const sql of bookingMigrations) {
+    try { db.exec(sql) } catch (_) {}
+  }
 }
 
 function seedData() {

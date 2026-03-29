@@ -3,10 +3,11 @@ const { getDb } = require('../db/database')
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization
-  if (!header || !header.startsWith('Bearer ')) {
+  // Also accept token as query param (for SSE connections which can't set headers)
+  const token = (header && header.startsWith('Bearer ')) ? header.slice(7) : req.query.token
+  if (!token) {
     return res.status(401).json({ error: 'No token provided' })
   }
-  const token = header.slice(7)
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
     const db = getDb()

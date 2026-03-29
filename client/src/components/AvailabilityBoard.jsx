@@ -162,7 +162,7 @@ export default function AvailabilityBoard() {
   }, [])
 
   const handleTileClick = (type) => {
-    navigate(`/book?type=${type}`)
+    navigate(`/stations?type=${type}`)
   }
 
   const grouped = { pc: [], playstation: [], pool: [] }

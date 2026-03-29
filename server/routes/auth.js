@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { getDb, lastId } = require('../db/database')
 const authMiddleware = require('../middleware/auth')
+const { logActivity } = require('../utils/activityLogger')
 
 const router = express.Router()
 
@@ -31,6 +32,7 @@ router.post('/register', (req, res) => {
   ).run(name.trim(), email.toLowerCase(), phoneClean, hash)
   const user = db.prepare('SELECT id, name, email, phone, role, wallet_balance, points FROM users WHERE id = ?').get(lastId(result))
   const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN })
+  logActivity(db, { userId: user.id, userName: user.name, role: user.role, action: 'user_register', details: `New account registered` })
   res.status(201).json({ token, user })
 })
 
@@ -53,6 +55,7 @@ router.post('/login', (req, res) => {
   }
   const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN })
   const { password_hash, ...safeUser } = user
+  logActivity(db, { userId: user.id, userName: user.name, role: user.role, action: 'user_login', details: `Logged in via ${/^\d{10}$/.test(clean) ? 'phone' : 'email'}` })
   res.json({ token, user: safeUser })
 })
 

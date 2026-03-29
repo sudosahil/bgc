@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 // ─── Config ────────────────────────────────────────────────────────────────
 const TYPE_CFG = {
@@ -24,48 +24,23 @@ function fmt12(h) {
 
 // ─── Seat Tile ──────────────────────────────────────────────────────────────
 function SeatTile({ station, selected, onToggle, hasSlot }) {
-  const cfg = TYPE_CFG[station.type] || TYPE_CFG.pc
   const available = station.available !== false
 
-  // If no slot selected yet, show neutral state
+  let bg, border, cursor, textColor
   if (!hasSlot) {
-    return (
-      <div
-        title={station.name}
-        style={{
-          background: cfg.bg,
-          border: `1px solid ${cfg.border}`,
-          borderRadius: 8,
-          padding: '10px 6px',
-          textAlign: 'center',
-          cursor: 'default',
-          opacity: 0.7,
-          minHeight: 52,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, color: cfg.accent, lineHeight: 1.2 }}>
-          {station.name}
-        </div>
-      </div>
-    )
-  }
-
-  let bg, border, cursor
-  if (!available) {
-    bg = 'rgba(255,26,107,0.06)'; border = 'rgba(255,26,107,0.2)'; cursor = 'not-allowed'
+    bg = 'rgba(255,255,255,0.03)'; border = 'rgba(255,255,255,0.08)'; cursor = 'default'; textColor = '#4a3f5c'
+  } else if (!available) {
+    bg = 'rgba(255,26,107,0.08)'; border = 'rgba(255,26,107,0.3)'; cursor = 'not-allowed'; textColor = 'rgba(255,26,107,0.45)'
   } else if (selected) {
-    bg = 'rgba(0,255,136,0.14)'; border = '#00ff88'; cursor = 'pointer'
+    bg = 'rgba(0,255,136,0.15)'; border = '#00ff88'; cursor = 'pointer'; textColor = '#00ff88'
   } else {
-    bg = cfg.bg; border = cfg.border; cursor = 'pointer'
+    bg = 'rgba(0,255,136,0.06)'; border = 'rgba(0,255,136,0.3)'; cursor = 'pointer'; textColor = '#00ff88'
   }
 
   return (
     <div
-      onClick={available ? onToggle : undefined}
-      title={!available ? `${station.name} — booked` : station.name}
+      onClick={(hasSlot && available) ? onToggle : undefined}
+      title={!hasSlot ? station.name : !available ? `${station.name} — booked` : station.name}
       style={{
         background: bg,
         border: `1.5px solid ${border}`,
@@ -76,6 +51,9 @@ function SeatTile({ station, selected, onToggle, hasSlot }) {
         transition: 'all 0.12s',
         position: 'relative',
         minHeight: 52,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       {selected && (
@@ -88,7 +66,7 @@ function SeatTile({ station, selected, onToggle, hasSlot }) {
           <Check size={9} color="#0a060d" strokeWidth={3} />
         </div>
       )}
-      {!available && (
+      {hasSlot && !available && (
         <div style={{
           position: 'absolute', top: 3, right: 3,
           width: 14, height: 14, borderRadius: '50%',
@@ -98,12 +76,7 @@ function SeatTile({ station, selected, onToggle, hasSlot }) {
           <X size={8} color="#ff1a6b" strokeWidth={3} />
         </div>
       )}
-      <div style={{
-        fontFamily: "'Bebas Neue', sans-serif",
-        fontSize: 13,
-        color: !available ? 'rgba(255,26,107,0.35)' : selected ? '#00ff88' : cfg.accent,
-        lineHeight: 1.2,
-      }}>
+      <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, color: textColor, lineHeight: 1.2 }}>
         {station.name}
       </div>
     </div>
@@ -112,46 +85,21 @@ function SeatTile({ station, selected, onToggle, hasSlot }) {
 
 // ─── Checkout Panel ─────────────────────────────────────────────────────────
 function CheckoutPanel({ selected, stations, duration, slot, user, onBook, booking }) {
-  const [payMethod, setPayMethod] = useState('wallet')
-  const [discountCode, setDiscountCode] = useState('')
-  const [discountData, setDiscountData] = useState(null)
-  const [discountErr, setDiscountErr] = useState('')
-  const [validating, setValidating] = useState(false)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const navigate = useNavigate()
 
   const selectedStations = stations.filter(s => selected.has(s.id))
-  const subtotal = selectedStations.reduce((sum, s) => sum + s.hourly_rate * duration, 0)
-  const discountAmt = discountData ? discountData.discountAmount : 0
-  const total = subtotal - discountAmt
-  const deposit = Math.ceil(total * 0.5)
-  const final = total - deposit
-
-  async function applyDiscount() {
-    if (!discountCode.trim()) return
-    setValidating(true); setDiscountErr(''); setDiscountData(null)
-    try {
-      const r = await api.post('/discounts/validate', {
-        code: discountCode.trim(),
-        station_type: 'all',
-        subtotal,
-      })
-      setDiscountData(r.data)
-    } catch (e) {
-      setDiscountErr(e.response?.data?.error || 'Invalid code')
-    } finally { setValidating(false) }
-  }
+  const total = selectedStations.reduce((sum, s) => sum + s.hourly_rate * duration, 0)
 
   async function handleBook() {
-    if (!user) { navigate('/login'); return }
-    if (selected.size === 0) return
-    if (!slot) return
+    if (!user) { navigate('/login', { state: { from: '/stations' } }); return }
+    if (selected.size === 0 || !slot) return
     setLoading(true); setErr('')
     try {
-      await onBook({ payMethod, discountCode: discountData ? discountCode.trim() : undefined })
+      await onBook({ payMethod: 'cash' })
     } catch (e) {
-      setErr(e.response?.data?.error || 'Booking failed')
+      setErr(e.response?.data?.error || 'Booking failed. Please try again.')
     } finally { setLoading(false) }
   }
 
@@ -161,7 +109,7 @@ function CheckoutPanel({ selected, stations, duration, slot, user, onBook, booki
         <CheckCircle2 size={36} color="#00ff88" style={{ margin: '0 auto 12px' }} />
         <p style={{ fontFamily: "'Bebas Neue'", fontSize: 20, color: '#00ff88', letterSpacing: '0.05em' }}>Booking Confirmed!</p>
         <p style={{ color: '#a0a0b8', fontSize: 13, marginTop: 6 }}>
-          {booking.length} station{booking.length > 1 ? 's' : ''} booked · ₹{deposit} deposit paid
+          {Array.isArray(booking) ? booking.length : 1} station{Array.isArray(booking) && booking.length > 1 ? 's' : ''} booked
         </p>
         <button onClick={() => navigate('/dashboard')}
           style={{ marginTop: 16, width: '100%', padding: '10px 0', borderRadius: 8, background: 'rgba(0,255,136,0.12)', border: '1px solid rgba(0,255,136,0.3)', color: '#00ff88', fontFamily: "'Bebas Neue'", fontSize: 15, letterSpacing: '0.05em', cursor: 'pointer' }}>
@@ -171,34 +119,32 @@ function CheckoutPanel({ selected, stations, duration, slot, user, onBook, booki
     )
   }
 
+  const canBook = selected.size > 0 && !!slot
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* Selected stations */}
       <div style={{ background: '#1a1025', border: '1px solid #2d1f3d', borderRadius: 10, padding: 14 }}>
         <p style={{ fontSize: 11, fontWeight: 700, color: '#6b5c8a', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-          Selected Stations ({selected.size})
+          Selected ({selected.size})
         </p>
         {selected.size === 0 ? (
-          <p style={{ color: '#4a3f5c', fontSize: 13 }}>Click stations on the map to select</p>
+          <p style={{ color: '#4a3f5c', fontSize: 13 }}>Click green stations to select</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {selectedStations.map(s => {
-              const cfg = TYPE_CFG[s.type]
-              return (
-                <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: cfg.accent }}>{s.name}</span>
-                  <span style={{ fontSize: 13, color: '#a0a0b8' }}>₹{(s.hourly_rate * duration).toLocaleString()}</span>
-                </div>
-              )
-            })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {selectedStations.map(s => (
+              <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#00ff88' }}>{s.name}</span>
+                <span style={{ fontSize: 13, color: '#a0a0b8' }}>₹{(s.hourly_rate * duration).toLocaleString()}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Slot info */}
+      {/* Slot + total */}
       {slot && (
-        <div style={{ background: '#1a1025', border: '1px solid #2d1f3d', borderRadius: 10, padding: 14, fontSize: 12, color: '#a0a0b8', lineHeight: 1.8 }}>
+        <div style={{ background: '#1a1025', border: '1px solid #2d1f3d', borderRadius: 10, padding: 14, fontSize: 12, color: '#a0a0b8', lineHeight: 1.9 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Date</span><span style={{ color: '#e0d0f0' }}>{dayjs(slot.date).format('D MMM YYYY')}</span>
           </div>
@@ -208,80 +154,12 @@ function CheckoutPanel({ selected, stations, duration, slot, user, onBook, booki
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Duration</span><span style={{ color: '#e0d0f0' }}>{duration}h</span>
           </div>
-        </div>
-      )}
-
-      {/* Payment method */}
-      <div style={{ background: '#1a1025', border: '1px solid #2d1f3d', borderRadius: 10, padding: 14 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#6b5c8a', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Payment</p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['wallet', 'cash'].map(m => (
-            <button key={m} onClick={() => setPayMethod(m)}
-              style={{
-                flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
-                background: payMethod === m ? 'rgba(255,110,180,0.12)' : 'transparent',
-                border: payMethod === m ? '1px solid #ff6eb4' : '1px solid #2d1f3d',
-                color: payMethod === m ? '#ff6eb4' : '#6b5c8a',
-              }}>
-              {m === 'wallet' ? '💳 Wallet' : '💵 Cash'}
-            </button>
-          ))}
-        </div>
-        {payMethod === 'wallet' && user && (
-          <p style={{ fontSize: 11, color: '#6b5c8a', marginTop: 8 }}>
-            Balance: <span style={{ color: '#e0d0f0' }}>₹{user.wallet_balance?.toLocaleString() ?? 0}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Discount */}
-      <div style={{ background: '#1a1025', border: '1px solid #2d1f3d', borderRadius: 10, padding: 14 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#6b5c8a', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Discount Code</p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            value={discountCode}
-            onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountData(null); setDiscountErr('') }}
-            placeholder="ENTER CODE"
-            style={{
-              flex: 1, padding: '8px 10px', borderRadius: 8, background: '#0f0a18', border: '1px solid #2d1f3d',
-              color: '#e0d0f0', fontSize: 12, fontFamily: 'monospace', outline: 'none',
-            }}
-          />
-          <button onClick={applyDiscount} disabled={validating || !discountCode.trim()}
-            style={{
-              padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              background: 'rgba(255,110,180,0.12)', border: '1px solid #ff6eb4', color: '#ff6eb4',
-              opacity: (!discountCode.trim() || validating) ? 0.5 : 1,
-            }}>
-            {validating ? '...' : 'Apply'}
-          </button>
-        </div>
-        {discountErr && <p style={{ fontSize: 11, color: '#ff6eb4', marginTop: 6 }}>{discountErr}</p>}
-        {discountData && <p style={{ fontSize: 11, color: '#00ff88', marginTop: 6 }}>✓ −₹{discountData.discountAmount} applied</p>}
-      </div>
-
-      {/* Price breakdown */}
-      {selected.size > 0 && slot && (
-        <div style={{ background: '#1a1025', border: '1px solid #2d1f3d', borderRadius: 10, padding: 14, fontSize: 13 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a0a0b8', marginBottom: 6 }}>
-            <span>Subtotal</span><span>₹{subtotal.toLocaleString()}</span>
-          </div>
-          {discountAmt > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#00ff88', marginBottom: 6 }}>
-              <span>Discount</span><span>−₹{discountAmt.toLocaleString()}</span>
+          {canBook && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #2d1f3d', paddingTop: 8, marginTop: 4 }}>
+              <span style={{ color: '#e0d0f0', fontWeight: 700 }}>Total</span>
+              <span style={{ color: '#ff6eb4', fontWeight: 700, fontSize: 14 }}>₹{total.toLocaleString()}</span>
             </div>
           )}
-          <div style={{ borderTop: '1px solid #2d1f3d', paddingTop: 8, marginTop: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#e0d0f0', fontWeight: 700, marginBottom: 4 }}>
-              <span>Total</span><span>₹{total.toLocaleString()}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff6eb4', fontSize: 12 }}>
-              <span>Pay now (50% deposit)</span><span>₹{deposit.toLocaleString()}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b5c8a', fontSize: 11, marginTop: 2 }}>
-              <span>Pay later (at counter)</span><span>₹{final.toLocaleString()}</span>
-            </div>
-          </div>
         </div>
       )}
 
@@ -294,27 +172,28 @@ function CheckoutPanel({ selected, stations, duration, slot, user, onBook, booki
 
       <button
         onClick={handleBook}
-        disabled={loading || selected.size === 0 || !slot}
+        disabled={loading || !canBook}
         style={{
-          width: '100%', padding: '13px 0', borderRadius: 10,
-          background: (selected.size > 0 && slot) ? 'linear-gradient(135deg, #ff6eb4, #ff1a6b)' : '#1a1025',
-          border: (selected.size > 0 && slot) ? 'none' : '1px solid #2d1f3d',
-          color: (selected.size > 0 && slot) ? '#fff' : '#4a3f5c',
+          width: '100%', padding: '15px 0', borderRadius: 10,
+          background: canBook ? 'linear-gradient(135deg, #E8185A, #9B1060)' : '#1a1025',
+          border: canBook ? 'none' : '1px solid #2d1f3d',
+          color: canBook ? '#fff' : '#4a3f5c',
           fontFamily: "'Bebas Neue', sans-serif",
-          fontSize: 17, letterSpacing: '0.06em', cursor: (selected.size > 0 && slot) ? 'pointer' : 'not-allowed',
+          fontSize: 19, letterSpacing: '0.08em',
+          cursor: canBook ? 'pointer' : 'not-allowed',
           transition: 'all 0.15s', opacity: loading ? 0.7 : 1,
-          boxShadow: (selected.size > 0 && slot) ? '0 4px 20px rgba(255,26,107,0.3)' : 'none',
+          boxShadow: canBook ? '0 4px 24px rgba(232,24,90,0.35)' : 'none',
         }}>
         {!user ? 'LOGIN TO BOOK'
           : loading ? 'BOOKING...'
           : !slot ? 'SELECT A TIME SLOT'
           : selected.size === 0 ? 'SELECT STATIONS'
-          : `BOOK ${selected.size} STATION${selected.size > 1 ? 'S' : ''} · ₹${deposit.toLocaleString()}`}
+          : `BOOK NOW · ₹${total.toLocaleString()}`}
       </button>
 
       {!user && (
         <p style={{ textAlign: 'center', fontSize: 12, color: '#6b5c8a' }}>
-          <span style={{ color: '#ff6eb4', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/login')}>Log in</span>{' '}
+          <span style={{ color: '#ff6eb4', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/login', { state: { from: '/stations' } })}>Log in</span>{' '}
           or{' '}
           <span style={{ color: '#ff6eb4', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/register')}>register</span>{' '}
           to book
@@ -328,6 +207,7 @@ function CheckoutPanel({ selected, stations, duration, slot, user, onBook, booki
 export default function Stations() {
   const { user, refreshUser } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   // Slot selection
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'))
@@ -344,8 +224,9 @@ export default function Stations() {
   const [selected, setSelected] = useState(new Set())
   const [booking, setBooking] = useState(null)
 
-  // Filter
-  const [filter, setFilter] = useState('all')
+  // Filter — can be pre-set via ?type=pc|playstation|pool
+  const typeParam = searchParams.get('type')
+  const [filter, setFilter] = useState(['pc', 'playstation', 'pool'].includes(typeParam) ? typeParam : 'all')
 
   // Load base station list on mount
   useEffect(() => {
@@ -378,20 +259,29 @@ export default function Stations() {
     })
   }
 
-  async function handleBook({ payMethod, discountCode }) {
-    const startISO = `${date}T${String(hour).padStart(2, '0')}:00:00`
-    const r = await api.post('/bookings/multi', {
-      station_ids: [...selected],
-      start_time: startISO,
-      duration_hours: duration,
-      payment_method: payMethod,
-      discount_code: discountCode,
-    })
-    setBooking(r.data.bookings)
-    setSelected(new Set())
-    await refreshUser()
-    // Re-fetch availability
-    fetchSlot()
+  async function handleBook(arg) {
+    // arg is either { payMethod, discountCode } (wallet/cash) or bookings[] (razorpay already verified)
+    if (Array.isArray(arg)) {
+      // Razorpay: bookings already created, just update state
+      setBooking(arg)
+      setSelected(new Set())
+      await refreshUser()
+      fetchSlot()
+    } else {
+      const { payMethod, discountCode } = arg
+      const startISO = `${date}T${String(hour).padStart(2, '0')}:00:00`
+      const r = await api.post('/bookings/multi', {
+        station_ids: [...selected],
+        start_time: startISO,
+        duration_hours: duration,
+        payment_method: payMethod,
+        discount_code: discountCode,
+      })
+      setBooking(r.data.bookings)
+      setSelected(new Set())
+      await refreshUser()
+      fetchSlot()
+    }
   }
 
   // Display stations (slot data if available, else base list)

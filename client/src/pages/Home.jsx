@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import { HeroGeometric } from '@/components/ui/shape-landing-hero'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import AvailabilityBoard from '../components/AvailabilityBoard'
 import api from '../api/axios'
 
 /* ── Data ── */
@@ -659,6 +660,9 @@ export default function Home() {
           })}
         </div>
       </section>
+
+      {/* ── Live Availability ── */}
+      <AvailabilityBoard />
 
       {/* ── How It Works ── */}
       <div className="w-full bg-bgc-surface border-y border-bgc-border">

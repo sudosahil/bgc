@@ -3,6 +3,7 @@ const { randomUUID } = require('crypto')
 const { getDb, transaction, lastId } = require('../db/database')
 const authMiddleware = require('../middleware/auth')
 const adminOnly = require('../middleware/adminOnly')
+const { logActivity, activityClients } = require('../utils/activityLogger')
 
 const router = express.Router()
 router.use(authMiddleware, adminOnly)
@@ -144,6 +145,7 @@ router.post('/walkins', (req, res) => {
   `).run(station_id, customer_name.trim(), customer_phone || null, startISO, dur, total, parseFloat(amount_paid), notes || null, req.user.id)
 
   const walkin = db.prepare('SELECT w.*, s.name as station_name, s.type as station_type FROM walkins w JOIN stations s ON w.station_id = s.id WHERE w.id = ?').get(lastId(result))
+  logActivity(db, { userId: req.user.id, userName: req.user.name, role: 'admin', action: 'walkin_created', details: `Walk-in: ${customer_name} on ${station.name} for ${dur}h` })
   res.status(201).json({ walkin })
 })
 
@@ -574,6 +576,47 @@ router.get('/analytics', (req, res) => {
   `).all(`-${days} days`)
 
   res.json({ dailyRevenue, revenueByType, popularStations })
+})
+
+// GET /api/admin/activity — recent activity log (REST)
+router.get('/activity', (req, res) => {
+  const db = getDb()
+  const limit = Math.min(parseInt(req.query.limit) || 100, 500)
+  const logs = db.prepare('SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ?').all(limit)
+  res.json({ logs })
+})
+
+// GET /api/admin/activity/stream — SSE real-time stream
+router.get('/activity/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.flushHeaders()
+
+  // Send last 50 events immediately on connect
+  try {
+    const db = getDb()
+    const recent = db.prepare('SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 50').all()
+    res.write(`data: ${JSON.stringify({ type: 'init', logs: recent.reverse() })}\n\n`)
+  } catch (_) {}
+
+  activityClients.add(res)
+  req.on('close', () => activityClients.delete(res))
+})
+
+// PATCH /api/admin/stations/:id — log station status changes
+router.patch('/stations/:id', (req, res, next) => {
+  // Log after the stations route handles it — piggyback via response finish
+  res.on('finish', () => {
+    if (res.statusCode === 200) {
+      const db = getDb()
+      const station = db.prepare('SELECT name FROM stations WHERE id = ?').get(req.params.id)
+      if (station) {
+        logActivity(db, { userId: req.user.id, userName: req.user.name, role: 'admin', action: 'station_status_changed', details: `${station.name} → ${req.body.status}` })
+      }
+    }
+  })
+  next()
 })
 
 module.exports = router
