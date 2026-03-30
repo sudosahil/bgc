@@ -19,6 +19,7 @@
     "razorpay": "^2.9.2",
     "resend": "^6.9.4"
   },
+  "engines": { "node": ">=22.0.0" },
   "devDependencies": {
     "cross-env": "^7.0.3",
     "jest": "^29.7.0",
