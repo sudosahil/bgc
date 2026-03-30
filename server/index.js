@@ -6,8 +6,16 @@ const { startCron } = require('./jobs/bookingCron')
 
 const app = express()
 
+const allowedOrigin = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '')
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const normalized = origin ? origin.replace(/\/$/, '') : ''
+    if (!origin || normalized === allowedOrigin || normalized === 'http://localhost:5173') {
+      callback(null, origin || allowedOrigin)
+    } else {
+      callback(null, false)
+    }
+  },
   credentials: true,
 }))
 app.use(express.json())
