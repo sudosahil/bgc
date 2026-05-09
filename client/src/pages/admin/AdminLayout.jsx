@@ -83,7 +83,12 @@ export default function AdminLayout() {
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <h1 className="font-heading text-lg font-bold text-bgc-text">Admin Dashboard</h1>
-          <div className="ml-auto text-bgc-muted text-xs">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-bgc-muted text-xs hidden sm:block">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+            <button onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-bgc-error text-sm hover:bg-bgc-error/10 transition-colors">
+              <LogOut size={14} /> Logout
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 p-4 sm:p-6 overflow-auto">
