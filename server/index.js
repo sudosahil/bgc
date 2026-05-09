@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const path = require('path')
 const { getDb } = require('./db/database')
 const { startCron } = require('./jobs/bookingCron')
 
@@ -20,6 +21,10 @@ app.use(cors({
 }))
 app.use(express.json())
 
+// Serve built React frontend
+const clientDist = path.join(__dirname, '..', 'client', 'dist')
+app.use(express.static(clientDist))
+
 // Initialize DB
 getDb()
 
@@ -37,7 +42,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
 })
 
-// 404
+// React Router catch-all — serve index.html for non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next()
+  res.sendFile(path.join(clientDist, 'index.html'))
+})
+
+// 404 (API routes only)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' })
 })

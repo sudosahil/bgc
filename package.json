@@ -1,0 +1,15 @@
+{
+  "name": "bgc",
+  "version": "1.0.0",
+  "description": "Bombay Gaming Company - Full Stack App",
+  "scripts": {
+    "build": "cd client && npm install && npm run build",
+    "start": "node --experimental-sqlite server/index.js",
+    "install:all": "npm install --prefix client && npm install --prefix server",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
