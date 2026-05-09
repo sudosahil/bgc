@@ -4,13 +4,14 @@
   "description": "Bombay Gaming Company - API Server",
   "main": "index.js",
   "scripts": {
-    "start": "node --experimental-sqlite index.js",
-    "dev": "nodemon --exec \"node --experimental-sqlite\" index.js",
-    "test": "cross-env NODE_OPTIONS=--experimental-sqlite jest --runInBand --forceExit",
-    "test:watch": "cross-env NODE_OPTIONS=--experimental-sqlite jest --watch --runInBand"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest --runInBand --forceExit",
+    "test:watch": "jest --watch --runInBand"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.9.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
@@ -19,7 +20,9 @@
     "razorpay": "^2.9.2",
     "resend": "^6.9.4"
   },
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "devDependencies": {
     "cross-env": "^7.0.3",
     "jest": "^29.7.0",

@@ -1,37 +1,27 @@
-const { DatabaseSync } = require('node:sqlite')
+const Database = require('better-sqlite3')
 const bcrypt = require('bcryptjs')
 const path = require('path')
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'bgc.sqlite')
+const DB_PATH = process.env.DB_PATH ||
+  (process.env.VERCEL ? '/tmp/bgc.sqlite' : path.join(__dirname, '..', 'bgc.sqlite'))
 
 let db
 
 function getDb() {
   if (!db) {
-    db = new DatabaseSync(DB_PATH)
-    db.exec("PRAGMA journal_mode = WAL")
-    db.exec("PRAGMA foreign_keys = ON")
+    db = new Database(DB_PATH)
+    db.pragma('journal_mode = WAL')
+    db.pragma('foreign_keys = ON')
     initSchema()
     seedData()
   }
   return db
 }
 
-// Transaction helper (node:sqlite has no db.transaction() helper)
 function transaction(fn) {
-  const d = getDb()
-  d.exec('BEGIN')
-  try {
-    const result = fn()
-    d.exec('COMMIT')
-    return result
-  } catch (e) {
-    try { d.exec('ROLLBACK') } catch {}
-    throw e
-  }
+  return db.transaction(fn)()
 }
 
-// node:sqlite returns BigInt for lastInsertRowid — always normalise to Number
 function lastId(result) {
   return Number(result.lastInsertRowid)
 }
